@@ -1,37 +1,33 @@
 heat_template_version: 2016-10-14
 
-description: >
-  Simple template to create a server for project deployment
+description: Simple VM for lab3
 
 parameters:
-  key_name:
+  KEY_NAME:
     type: string
-    description: Name of an existing keypair to enable SSH access
-
-  image:
+    description: SSH keypair name
+  IMAGE:
     type: string
-    description: Image ID or name to use for the server
-
-  flavor:
+    description: Image name
+  FLAVOR:
     type: string
-    description: Flavor to use for the server
+    description: Flavor name
+  NETWORK_NAME:
+    type: string
+    description: Existing Neutron network name
 
 resources:
-  my_server:
+  lab3_server:
     type: OS::Nova::Server
     properties:
-      name: project-server
-      image: { get_param: image }
-      flavor: { get_param: flavor }
-      key_name: { get_param: key_name }
+      name: lab3-vm
+      key_name: { get_param: KEY_NAME }
+      image:    { get_param: IMAGE }
+      flavor:   { get_param: FLAVOR }
       networks:
-        - network: sutdents-net  # замените на вашу сеть
+        - network: { get_param: NETWORK_NAME }
 
 outputs:
-  server_ip:
-    description: IP address of the created server
-    value: { get_attr: [my_server, first_address] }
-}
-  server_ip:
-    description: IP address of the created server
-    value: { get_attr: [my_server, first_address] }
+  server_name:
+    description: Name of created server
+    value: { get_attr: [ lab3_server, name ] }
