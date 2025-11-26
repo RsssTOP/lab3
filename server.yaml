@@ -1,33 +1,45 @@
 heat_template_version: 2016-10-14
 
-description: Simple VM for lab3
+description: >
+  Шаблон для создания одного сервера BigDwarf
+  с flavor m1.small, образом ununtu-22.04,
+  в сети students-net, c группой безопасности students-general
+  и ключом RomanS1.
 
 parameters:
-  KEY_NAME:
-    type: string
-    description: SSH keypair name
-  IMAGE:
-    type: string
-    description: Image name
   FLAVOR:
     type: string
-    description: Flavor name
+    default: m1.small
+  IMAGE:
+    type: string
+    default: ununtu-22.04
   NETWORK_NAME:
     type: string
-    description: Existing Neutron network name
+    default: students-net
+  SEC_GROUP:
+    type: string
+    default: students-general
+  KEY_NAME:
+    type: string
+    default: RSelishchevMain
+  SERVER_NAME:
+    type: string
+    default: Lab3
 
 resources:
-  lab3_server:
+  bigdwarf_server:
     type: OS::Nova::Server
     properties:
-      name: lab3-vm
-      key_name: { get_param: KEY_NAME }
-      image:    { get_param: IMAGE }
-      flavor:   { get_param: FLAVOR }
+      name:        { get_param: SERVER_NAME }
+      flavor:      { get_param: FLAVOR }
+      image:       { get_param: IMAGE }
+      key_name:    { get_param: KEY_NAME }
+      security_groups:
+        - { get_param: SEC_GROUP }
       networks:
         - network: { get_param: NETWORK_NAME }
 
 outputs:
   server_name:
-    description: Name of created server
-    value: { get_attr: [ lab3_server, name ] }
+    description: Имя созданного сервера
+    value: { get_attr: [ bigdwarf_server, name ] }
