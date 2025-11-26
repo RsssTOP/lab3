@@ -1,67 +1,57 @@
 pipeline {
-  agent { label 'l1' }
+    agent { label 'l1' }  // твой нод RomanS
 
-  environment {
-    OS_CLOUD = 'RomanSCloud'
-    STACK_NAME = 'RomanS-heat-stack'
-  }
-
-  parameters {
-    string(name: 'KEY_NAME', defaultValue: 'RomanS', description: 'SSH Key Name')
-    string(name: 'IMAGE', defaultValue: 'ubuntu-22.04', description: 'Image Name')
-    string(name: 'FLAVOR', defaultValue: 'm1.small', description: 'Flavor')
-    string(name: 'NETWORK_NAME', defaultValue: 'sutdents-net', description: 'OpenStack Network Name or ID')
-  }
-
-  stages {
-    stage('Checkout') {
-      steps {
-        git 'https://github.com/RsssTOP/lab3.git'
-      }
+    environment {
+        STACK_NAME   = 'lab3-stack'
+        FLAVOR       = 'm1.small'
+        IMAGE        = 'ununtu-22.04'
+        NETWORK_NAME = 'students-net'
+        SEC_GROUP    = 'students-general'
+        KEY_NAME     = 'RomanS1'
+        SERVER_NAME  = 'Lab3'
     }
 
-    stage('Deploy Stack') {
-      steps {
-        script {
-          echo "Starting Deploy Stack stage"
-
-          sh 'set -x'  // включаем вывод команд
-
-          def stackExists = sh(
-            script: "openstack stack list -f value -c 'Stack Name' | grep -w ${env.STACK_NAME} || true",
-            returnStdout: true
-          ).trim()
-          echo "Stack exists: ${stackExists}"
-
-          if (stackExists) {
-            sh """
-              openstack stack update -t server.yaml \\
-                --parameter key_name=${params.KEY_NAME} \\
-                --parameter image=${params.IMAGE} \\
-                --parameter flavor=${params.FLAVOR} \\
-                --parameter network_name=${params.NETWORK_NAME} \\
-                ${env.STACK_NAME}
-            """
-          } else {
-            sh """
-              openstack stack create -t server.yaml \\
-                --parameter key_name=${params.KEY_NAME} \\
-                --parameter image=${params.IMAGE} \\
-                --parameter flavor=${params.FLAVOR} \\
-                --parameter network_name=${params.NETWORK_NAME} \\
-                ${env.STACK_NAME}
-            """
-          }
-
-          sh "openstack stack wait ${env.STACK_NAME}"
-
-          def serverIp = sh(
-            script: "openstack stack output show ${env.STACK_NAME} server_ip -f value",
-            returnStdout: true
-          ).trim()
-          echo "Server IP: ${serverIp}"
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/RsssTOP/lab3.git'
+            }
         }
-      }
+
+        stage('Deploy via Heat') {
+            steps {
+                sh '''
+                    set -ex
+                    . /home/ubuntu/openrc-jenkins.sh
+
+                    if openstack stack list -f value -c "Stack Name" | grep -w "$STACK_NAME"; then
+                      echo "Stack $STACK_NAME уже существует — обновляем"
+                      openstack stack update \
+                        --parameter FLAVOR=$FLAVOR \
+                        --parameter IMAGE=$IMAGE \
+                        --parameter NETWORK_NAME=$NETWORK_NAME \
+                        --parameter SEC_GROUP=$SEC_GROUP \
+                        --parameter KEY_NAME=$KEY_NAME \
+                        --parameter SERVER_NAME=$SERVER_NAME \
+                        --wait \
+                        "$STACK_NAME" \
+                        server.yaml || echo "update вернулся с ошибкой"
+                    else
+                      echo "Stack $STACK_NAME не найден — создаём"
+                      openstack stack create \
+                        --parameter FLAVOR=$FLAVOR \
+                        --parameter IMAGE=$IMAGE \
+                        --parameter NETWORK_NAME=$NETWORK_NAME \
+                        --parameter SEC_GROUP=$SEC_GROUP \
+                        --parameter KEY_NAME=$KEY_NAME \
+                        --parameter SERVER_NAME=$SERVER_NAME \
+                        --wait \
+                        --template server.yaml \
+                        "$STACK_NAME" || echo "create вернулся с ошибкой"
+                    fi
+                '''
+            }
+        }
     }
-  }
 }
