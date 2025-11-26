@@ -5,7 +5,7 @@ pipeline {
         STACK_NAME   = 'lab3-stack'
         FLAVOR       = 'm1.small'
         IMAGE        = 'ununtu-22.04'
-        NETWORK_NAME = 'students-net'
+        NETWORK_NAME = '17eae9b6-2168-4a07-a0d3-66d5ad2a9f0e'
         SEC_GROUP    = 'students-general'
         KEY_NAME     = 'RomanS1'
         SERVER_NAME  = 'Lab3'
